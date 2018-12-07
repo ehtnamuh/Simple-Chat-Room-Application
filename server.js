@@ -37,25 +37,31 @@ mongo.connect(url, function (err, client) {
             timer = duration;
             minutes = 0;
             seconds = 0;
-            clear = setInterval(function () {
+            Tclear = setInterval(function () {
                 minutes = parseInt(timer / 60, 10)
                 seconds = parseInt(timer % 60, 10);
+
+                // update database here
+                temptime = minutes*60 + seconds;
+                sessions.update({ name: chatroomame }, {$set: {time: temptime} },function () {
+                    roomTimer = {name: chatroomame, min: minutes, sec:seconds};
+                    io.emit("update-timer", roomTimer);
+                });
+                // clearly oversight in design
+                sessions.update({ name: chatroomame }, {$set: {clear: Tclear} },function () {
+                });
+
                 minutes = minutes < 10 ? "0" + minutes : minutes;
                 seconds = seconds < 10 ? "0" + seconds : seconds;
                 console.log(minutes + ":" + seconds);
-                // update database here
-                sessions.update({ name: chatroomame }, {$addToSet: {members: {name:data.name}}} ,function () {
-                    emitLatest();
-                });
+                
                 if (--timer < 0) {
                     // send message to users to block chat room
-                    io.emit("session-end", chatroomame);
-                    clearInterval(clear);
-                }
-                // Maybe store the time in the future
-                // so that we can see from the get go if the chatroom is active or expired
-                roomTimer = {name: chatroomame, min: minutes, sec:seconds};
-                io.emit("update-timer", roomTimer);
+                    sessions.update({ name: chatroomame }, {$set: {time: temptime} },function () {
+                        io.emit("session-end", chatroomame);
+                        clearInterval(Tclear);
+                    });
+                }                
             }, 1000);
         }
 
@@ -68,7 +74,7 @@ mongo.connect(url, function (err, client) {
                     console.log("FRANKLY THIS SHOULDNT HAPPEN MAYBE I SEND STATUS IN FUTURE ee" );
                 }  else {
                     var duration = res[0].time;
-                    console.log("clear:" + duration);
+                    console.log("time:" + duration);
                     startTimer(roomname, duration);
                 }
             });
