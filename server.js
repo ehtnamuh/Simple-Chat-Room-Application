@@ -24,15 +24,24 @@ mongo.connect(url, function (err, client) {
 
     io.on('connection', function (socket) {
         let sessions = db.collection(colcName);
+        let sessiontimers = db.collection('sessiontimers')
         console.log("Ay blyat got the client on this side!");
+
         var clear; // used to store timeInterval Obj, needed to stop timer
+        var duration = -100; // temporary hack variable to store session current time
+        var timerStarted = false;
+
         // Helper Functions
         sendStatus = function (s) {
             socket.emit('status', s);
         }
         // Timer funct
-        startTimer = function(chatroomame, duration) {
-            timer = 15*60;
+        startTimer = function(chatroomame) {
+            if (duration == -100){
+                timer = 15*60;
+            } else {
+                timer = duration;
+            }
             minutes = 0;
             seconds = 0;
             clear = setInterval(function () {
@@ -52,6 +61,14 @@ mongo.connect(url, function (err, client) {
                 io.emit("update-timer", roomTimer);
             }, 1000);
         }
+
+        socket.on('start-timer', function(roomname){
+            startTimer
+        });
+        socket.on('stop-timer', function(roomname){
+            // clearInterval(clear)
+            // send msg  halt-timer
+        });
 
         socket.on('searchroom', function (data) {
             // emits the the new updated record

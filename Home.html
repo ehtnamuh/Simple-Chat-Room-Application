@@ -11,6 +11,10 @@
     <style>
         #chathistory{
             height: 600px;
+            overflow-y: scroll;
+        }
+        #sidepanel{
+            overflow-y: scroll;
         }
     </style>
 </head>
@@ -19,29 +23,37 @@
     <div id="status"></div>
     <div id="userEntry" class="row">
         <div class="col">
-                <input type="text" id="username" class="col-sm-6" placeholder="Enter Name">
-                <button id="loginBtn" class="btn btn-danger col-sm-1">Login</button>
+            <input type="text" id="username" class="col-sm-6" placeholder="Enter Name">
+            <button id="loginBtn" class="btn btn-danger col-sm-1">Login</button>
         </div>
     </div>
     <div id="view" class="row">
-        <div id="sidepanel" class="col-sm-3">
-            <h1>Side Panel</h1>
+        <div class="col-sm-3">
+            <div id="sidepanel" class="form-control">
+                <h1>Side Panel</h1>
+            </div>
+            <div>
+                <h1>
+                    <div id='timer'>00:00</div>
+                </h1>
+                <button id="stoptimerBtn" class="btn btn-danger col-sm-3">Stop</button>
+                <button id="starttimerBtn" class="btn btn-danger col-sm-3">Start</button>
+            </div>
         </div>
-        <div id="mainpanel" class="col-sm-6">
-            <h1>Main Panel</h1>
+
+        <div id="mainpanel" class="col-sm-6 form-control">
+            <h1 id = 'main-panel-title'>Main sPanel</h1>
             <!-- Chat room search html  -->
-            <h1></h1>
             <input type="text" id="chatroomname" class="col-sm-8" placeholder="Chat room name">
             <button id="searchroomBtn" class="btn btn-danger col-sm-3">Enter Room</button>
+
             <!-- Actual chat room  -->
             <div class="container">
                 <div class="row">
                     <div class="form-control">
-                        <div id="chat">
+                        <div id="chat-room">
                             <div class="card">
-                                <div id="chathistory" class="card-block">
-
-                                </div>
+                                <div id="chathistory" class="card-block"></div>
                             </div>
                             <br>
                             <textarea id="chatmessage" class="form-control" placeholder="Enter message...."></textarea>
@@ -50,6 +62,8 @@
                 </div>
             </div>
         </div>
+
+
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.dev.js"></script>
@@ -79,10 +93,14 @@
             var mainpanel = element('mainpanel');
             var loginBtn = element('loginBtn');
             var searchroomBtn = element('searchroomBtn');
+            var startTimerBtn = element('starttimerBtn');
+            var stopTimerBtn = element('stoptimerBtn');
             var usernameBox = element('username');
             var chatRoomName = element('chatroomname');
             var chatMessageBox = element('chatmessage');
             var chatHistory = element('chathistory');
+            var timerDisplay = element('timer');
+            var mainPanelTitle = element('main-panel-title');
 
             // Connect to Socket.io
             // hostURL and port may be changed using EJS to point to database server, 
@@ -100,6 +118,21 @@
                 chatroomMaker = { roomname: chatroomname, name: username }
                 socket.emit('searchroom', chatroomMaker);
             }
+
+            // Check if the session has expired
+            // Then disable textarea if it has
+
+            startTimerBtn.addEventListener('click', function () {
+                if (chatroomname !== '') {
+                    socket.emit('start-timer', chatroomname);
+                }
+            });
+
+            stopTimerBtn.addEventListener('click', function () {
+                if (chatroomname !== '') {
+                    socket.emit('stop-timer', chatroomname);
+                }
+            });
 
             // search for room or create one event
             searchroomBtn.addEventListener('click', function () {
@@ -152,7 +185,7 @@
                         for (var i = 0; i < data.length; i++) {
                             console.log(data);
                             var chat = document.createElement('div');
-                            chat.setAttribute('class', 'chat');
+                            chat.setAttribute('class', 'card');
                             chat.innerHTML = data[0].name + ": " + data[0].message;
                             chatHistory.appendChild(chat);
                         }
@@ -175,10 +208,11 @@
                             chatroom.innerHTML = "<h3>" + data[0].members[i].name + "</h3>";
                             sidepanel.appendChild(chatroom);
                         }
+                        mainPanelTitle.textContent = data[0].name;
                         chatHistory.innerHTML = "";
                         for (var i = 0; i < data[0].chats.length; i++) {
                             var chat = document.createElement('div');
-                            chat.setAttribute('class', 'chat');
+                            chat.setAttribute('class', 'card');
                             chat.innerHTML = data[0].chats[i].name + ": " + data[0].chats[i].message;
                             chatHistory.appendChild(chat);
                         }
@@ -204,14 +238,22 @@
                 usernameBox.value = '';
             });
 
-            socket.on('update-timer', function(roomTimer){
-                if(roomTimer.name === chatroomname){
+            socket.on('update-timer', function (roomTimer) {
+                if (roomTimer.name === chatroomname) {
+                    timerDisplay.textContent = roomTimer.min + " : " + roomTimer.sec;
                     console.log(roomTimer.min);
                     console.log(roomTimer.sec);
                 }
             });
-            socket.on('session-end', function(roomname){
-                if(roomname === chatroomname){
+            // NOT NECESSARY, CLIENT REALLY DOESNT NEED TO KNOW
+            // socket.on('halt-timer', function (roomTimer) {
+            //     if (roomTimer.name === chatroomname) {
+            //         console.log(roomTimer.min);
+            //         console.log(roomTimer.sec);
+            //     }
+            // });
+            socket.on('session-end', function (roomname) {
+                if (roomname === chatroomname) {
                     console.log(roomTimer.min);
                     console.log(roomTimer.sec);
                     console.log("SESSION ENDED");
