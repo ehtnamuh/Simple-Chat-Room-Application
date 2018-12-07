@@ -1,11 +1,18 @@
 //import { MongoClient as mongo } from 'mongodb';
+var app = require('express')();
+var http = require('http').Server(app);
+var io = require('socket.io')(http);
+
+app.get('/', function(req, res){
+  res.sendFile(__dirname + '/index.html');
+});
+
 const mongo = require('mongodb').MongoClient;
-const io = require('socket.io').listen(4000).sockets;
 
 const assert = require('assert');
 
 // Connection URL
-const url = 'mongodb://localhost:27017';
+const url = "mongodb://" + process.env.IP + ":27017";;
 
 // Database Name
 const dbName = 'mongochatsessions';
@@ -14,6 +21,10 @@ const colcName = 'chatsessions'
 
 // format for collection
 //var chatSession = { name: string, members: [name:stirng], chats: {name:string, message: string} };
+// route
+app.get('/', function(request, response) {
+    res.sendFile(__dirname + '/index.html');
+});
 
 //Connect to mongo
 mongo.connect(url, function (err, client) {
@@ -162,4 +173,8 @@ mongo.connect(url, function (err, client) {
     });
 
 
+});
+
+http.listen(process.env.PORT, process.env.IP, function() {
+    console.log('Server running');
 });
