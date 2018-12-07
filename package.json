@@ -1,0 +1,16 @@
+{
+  "name": "assignmentweb",
+  "version": "1.0.0",
+  "description": "15 min chat sessions",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "Samin Bin Karim",
+  "license": "ISC",
+  "dependencies": {
+    "mongodb": "^3.1.10",
+    "socket.io": "^2.2.0"
+  }
+}
