@@ -24,24 +24,17 @@ mongo.connect(url, function (err, client) {
 
     io.on('connection', function (socket) {
         let sessions = db.collection(colcName);
-        let sessiontimers = db.collection('sessiontimers')
         console.log("Ay blyat got the client on this side!");
 
-        var clear; // used to store timeInterval Obj, needed to stop timer
-        var duration = -100; // temporary hack variable to store session current time
-        var timerStarted = false;
+        sessionTime = 15*60;
 
         // Helper Functions
         sendStatus = function (s) {
             socket.emit('status', s);
         }
         // Timer funct
-        startTimer = function(chatroomame) {
-            if (duration == -100){
-                timer = 15*60;
-            } else {
-                timer = duration;
-            }
+        startTimer = function(chatroomame, duration) {
+            timer = duration;
             minutes = 0;
             seconds = 0;
             clear = setInterval(function () {
@@ -50,6 +43,10 @@ mongo.connect(url, function (err, client) {
                 minutes = minutes < 10 ? "0" + minutes : minutes;
                 seconds = seconds < 10 ? "0" + seconds : seconds;
                 console.log(minutes + ":" + seconds);
+                // update database here
+                sessions.update({ name: chatroomame }, {$addToSet: {members: {name:data.name}}} ,function () {
+                    emitLatest();
+                });
                 if (--timer < 0) {
                     // send message to users to block chat room
                     io.emit("session-end", chatroomame);
@@ -63,11 +60,32 @@ mongo.connect(url, function (err, client) {
         }
 
         socket.on('start-timer', function(roomname){
-            startTimer
+            sessions.find({name: roomname}).toArray(function (err, res) {
+                if (err) {
+                    throw err;
+                }
+                if(res.length <= 0){
+                    console.log("FRANKLY THIS SHOULDNT HAPPEN MAYBE I SEND STATUS IN FUTURE ee" );
+                }  else {
+                    var duration = res[0].time;
+                    console.log("clear:" + duration);
+                    startTimer(roomname, duration);
+                }
+            });
         });
         socket.on('stop-timer', function(roomname){
-            // clearInterval(clear)
-            // send msg  halt-timer
+            sessions.find({name: roomname}).toArray(function (err, res) {
+                if (err) {
+                    throw err;
+                }
+                if(res.length <= 0){
+                    console.log("FRANKLY THIS SHOULDNT HAPPEN MAYBE I SEND STATUS IN FUTURE" );
+                }  else {
+                    clear = res[0].clear;
+                    console.log("clear:" + clear);
+                    clearInterval(clear);
+                }
+            });
         });
 
         socket.on('searchroom', function (data) {
@@ -86,9 +104,9 @@ mongo.connect(url, function (err, client) {
                 }
                 if(res.length <= 0){
                     console.log("Came to insert:" + data.roomname);
-                    sessions.insert({name:data.roomname, members:[{name:data.name}], chats: []}, function (err, res) {
+                    sessions.insert({name:data.roomname, members:[{name:data.name}], chats: [], time: sessionTime, clear:''}, function (err, res) {
                         emitLatest();
-                        startTimer(data.roomname);
+                        startTimer(data.roomname, sessionTime);
                     });
                     
                 } else  if(!res[0].members.find(o => o.name === data.name)){
