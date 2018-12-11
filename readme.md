@@ -6,12 +6,11 @@ chat with other users in the chat rooms
 
 Have membership in multiple chat rooms
 
-last user and chatroom he used is stored and retrieved from localstorage
+last user and chatroom is stored and retrieved from localstorage
 
-timer sesstion can start 
-but donot stop due to a bug in the usage of
-clearInterval()
-
+timer session starts
+but does not stop due to a bug in the usage of
+clearInterval() 
 
 
 ![alt text](Capture.JPG)
